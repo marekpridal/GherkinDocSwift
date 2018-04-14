@@ -33,8 +33,10 @@ struct HtmlMaker {
     
     func generateHtml(with sections:[SectionWithSteps])throws -> URL {
         try sections.forEach { (section) in
-            var html = getHead()
+            var html = "<html>"
+            html += getHead()
             html += getBody(for: section, availableSectionsForNavigation: sections)
+            html += "</html>"
             try html.write(toFile:  FileManager.default.currentDirectoryPath + "/doc/\(section.name).html", atomically: true, encoding: .utf8)
         }
         try (getHead() + getBody(for: nil, availableSectionsForNavigation: sections)).write(toFile:  FileManager.default.currentDirectoryPath + "/doc/index.html", atomically: true, encoding: .utf8)
@@ -59,12 +61,28 @@ struct HtmlMaker {
         """
     }
     
+    private func getScripts() -> String {
+        return """
+        <script>
+        function copyToClipboard(text) {
+        var $temp = $("<input>");
+        $("body").append($temp);
+        $temp.val(text).select();
+        document.execCommand("copy");
+        $temp.remove();
+        alert("Step " + text + " is now in clipboard");
+        }
+        </script>
+        """
+    }
+    
     private func getBody(for section:SectionWithSteps?, availableSectionsForNavigation:[SectionWithSteps]) -> String {
         return """
         <body>
         <div class="container">
         \(getNavigation(for: availableSectionsForNavigation))
         \(getSteps(for: section))
+        \(getScripts())
         </div>
         </body>
         """
@@ -79,6 +97,7 @@ struct HtmlMaker {
             } else {
                 steps += "<p class=\"undocumentedStep\">\("Step has no comment")</p>"
             }
+            steps += "<button onclick=\"copyToClipboard('\(step.step)')\">Copy step to clipboard</button>"
         }
         return """
         <section>
