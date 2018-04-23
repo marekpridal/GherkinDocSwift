@@ -37,7 +37,7 @@ class Generator {
      - returns:
     Path to generated docs - Optional
      */
-    func generateDocs()throws -> URL {
+    func generateDocs(for platform:Platform)throws -> URL {
         
         let contentOfFile = try String(contentsOf: path)
     
@@ -45,9 +45,17 @@ class Generator {
             comments.append(PhraseWithLineNumber(phrase: value.replacingOccurrences(of: "\n", with: ""), lineNumber: nil))
         }
         
-        getParsedSteps(for: contentOfFile).forEach { (value) in
-            steps.append(PhraseWithLineNumber(phrase: value.replacingOccurrences(of: "\n", with: ""), lineNumber: nil))
-        }
+        switch platform {
+        case .Android:
+            getParsedStepsForAndroid(with: contentOfFile).forEach { (value) in
+                steps.append(PhraseWithLineNumber(phrase: value.replacingOccurrences(of: "\n", with: ""), lineNumber: nil))
+
+            }
+        case .iOS:
+            getParsedStepsForiOS(with: contentOfFile).forEach { (value) in
+                steps.append(PhraseWithLineNumber(phrase: value.replacingOccurrences(of: "\n", with: ""), lineNumber: nil))
+            }
+        }        
         
         getParsedSections(for: contentOfFile).forEach { (value) in
             sections.append(PhraseWithLineNumber(phrase: value.replacingOccurrences(of: "\n", with: ""), lineNumber: nil))
@@ -59,7 +67,14 @@ class Generator {
         
         stepsWithComments = getStepsWithComments(steps: steps, comments: comments, sections: sections)
         
-        stepsWithSections = getSections(stepsWithComments: stepsWithComments, sections: sections).map{ SectionWithSteps(name: $0.name,steps: $0.steps.map{ StepWithComment(step: $0.step.replacingOccurrences(of: "(.*)", with: "VALUE"), comment: $0.comment, stepLine: $0.stepLine, section: $0.section) }, line: $0.line) }
+        switch platform {
+        case .Android:
+            stepsWithSections = getSections(stepsWithComments: stepsWithComments, sections: sections).map{ SectionWithSteps(name: $0.name,steps: $0.steps.map{ StepWithComment(step: $0.step.replacingOccurrences(of: "\\\"([^\\\"]*)\\\"", with: "VALUE").replacingOccurrences(of: "\\\"(.+)\\\"", with: "VALUE").replacingOccurrences(of: "\"", with: "").replacingOccurrences(of: "^", with: "").replacingOccurrences(of: "$", with: ""), comment: $0.comment, stepLine: $0.stepLine, section: $0.section) }, line: $0.line) }
+        case .iOS:
+            stepsWithSections = getSections(stepsWithComments: stepsWithComments, sections: sections).map{ SectionWithSteps(name: $0.name,steps: $0.steps.map{ StepWithComment(step: $0.step.replacingOccurrences(of: "(.*)", with: "VALUE"), comment: $0.comment, stepLine: $0.stepLine, section: $0.section) }, line: $0.line) }
+        }
+        
+        
         print(comments.count < steps.count ? "\n⚠️ Some steps are missing comments\n" : "")
         print("Number of steps \(steps.count)\n")
         print("Undocumented steps \(steps.count - comments.count)" + " " + (steps.count - comments.count == 0 ? "👍" : "👎"))
@@ -84,19 +99,19 @@ class Generator {
     }
     
     private func getLinesWithLineCount(contentOfFile:String, lines:[PhraseWithLineNumber]) -> [PhraseWithLineNumber] {
-        var lineNumber = 0
         var result:[PhraseWithLineNumber] = lines
-        
-        contentOfFile.enumerateLines { (line, _) in
-            lineNumber += 1
-            result = result.map{ line.contains($0.phrase) ? PhraseWithLineNumber(phrase: $0.phrase, lineNumber: lineNumber) : $0 }
+        contentOfFile.split(separator: "\n").enumerated().forEach { (offset,line) in
+            result = result.map{ line.contains($0.phrase) ? PhraseWithLineNumber(phrase: $0.phrase, lineNumber: offset) : $0 }
         }
-        
         return result
     }
     
-    private func getParsedSteps(for fileContent:String) -> [String] {
+    private func getParsedStepsForiOS(with fileContent:String) -> [String] {
         return matches(for: "step(.*)", in: fileContent).map{ matches(for: "\".*\"", in: $0).first }.filter{ !($0?.isEmpty ?? true) }.compactMap{ $0?.replacingOccurrences(of: "\"", with: "") }
+    }
+    
+    private func getParsedStepsForAndroid(with fileContent:String) -> [String] {
+        return matches(for: "(\"\\^(.*)\\$\")", in: fileContent)
     }
     
     private func getParsedComments(for fileContent:String) -> [String] {

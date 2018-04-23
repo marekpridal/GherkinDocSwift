@@ -1,6 +1,6 @@
 #!/bin/bash
 
-swift build
-chmod 700 .build/debug/GherkinDoc
-cp .build/debug/GherkinDoc /usr/local/bin/GherkinDoc
-echo "Run GherkinDoc anywhere by typing GherkinDoc"
+swift build -c release
+sudo chmod 700 .build/release/GherkinDoc
+sudo cp .build/release/GherkinDoc /usr/local/bin/GherkinDoc
+echo "Run generator anywhere by typing GherkinDoc"

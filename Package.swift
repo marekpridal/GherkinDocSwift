@@ -15,6 +15,6 @@ let package = Package(
         .target(
             name: "GherkinDoc",
             dependencies: [],
-            sources: ["main.swift","Constants.swift","Generator.swift","HtmlMaker.swift","PhraseWithLineNumber.swift","SectionWithSteps.swift","StepWithComment.swift"]),
+            sources: ["main.swift","Constants.swift","Generator.swift","HtmlMaker.swift","PhraseWithLineNumber.swift","SectionWithSteps.swift","StepWithComment.swift","Platform.swift"]),
     ]
 )
